@@ -213,8 +213,41 @@ def BSCCO_analysis():
     #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','BSCCO','10K',k,opt_consts,interp_fxn_BSCCO)
     #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_100K_interp.csv','BSCCO','100K',k,opt_consts,interp_fxn_BSCCO)
 
+def DyBCO_analysis():
+    total_data = {}
+    interp_fxn = {}
+
+    csvh = CSV_Handler('DyBCO_e1_e2_model_10K.csv', total_data, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('DyBCO_e1_e2_model_100K.csv', total_data, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
+    csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
+
+    for temp in total_data.keys():
+        print(temp)
+        interp_fxn[temp] = {}
+        for opt in total_data[temp].keys():
+            if 'k_' not in opt:
+                print('\tInterpolating '+opt)
+                x = total_data[temp]['k_'+opt]
+                y = total_data[temp][opt]
+                interp_fxn[temp][opt] = interp1d(x,y, kind='cubic')
+
+    k = np.arange(101,10000,1)
+    opt_consts = ['e1ab','e2ab','e1c','e2c']
+    plot_epsab_epsc(k,'DyBCO $\epsilon(\omega)$ Values', interp_fxn)
+
+    create_datasheet('DyBCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','DyBCO','10K',k,opt_consts,interp_fxn)
+    create_datasheet('DyBCO_e1ab_e2ab_e1c_e2c_100K_interp.csv','DyBCO','100K',k,opt_consts,interp_fxn)
+
+
 def main():
-    #YBCO_analysis()
-    BSCCO_analysis()
+    material = 'DyBCO'
+    if material=='DyBCO':
+        DyBCO_analysis()
+    if material=='YBCO':
+        YBCO_analysis()
+    if material=='BSCCO':
+        BSCCO_analysis()
+
 
 if __name__=='__main__': main()
