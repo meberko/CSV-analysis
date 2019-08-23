@@ -219,8 +219,12 @@ def DyBCO_analysis():
 
     csvh = CSV_Handler('DyBCO_e1_e2_model_10K.csv', total_data, opt_consts = ['e1ab','e2ab'])
     csvh = CSV_Handler('DyBCO_e1_e2_model_100K.csv', total_data, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
-    csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
+    csvh = CSV_Handler('Bi2212_fit_e1_10K.csv', total_data, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_10K.csv', total_data, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Bi2212_fit_e1_100K.csv', total_data, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_100K.csv', total_data, opt_consts = ['e2c'])
+    #csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
+    #csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
 
     for temp in total_data.keys():
         print(temp)
@@ -236,8 +240,8 @@ def DyBCO_analysis():
     opt_consts = ['e1ab','e2ab','e1c','e2c']
     plot_epsab_epsc(k,'DyBCO $\epsilon(\omega)$ Values', interp_fxn)
 
-    create_datasheet('DyBCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','DyBCO','10K',k,opt_consts,interp_fxn)
-    create_datasheet('DyBCO_e1ab_e2ab_e1c_e2c_100K_interp.csv','DyBCO','100K',k,opt_consts,interp_fxn)
+    create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_10K_interp.csv','DyBCO','10K',k,opt_consts,interp_fxn)
+    create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_100K_interp.csv','DyBCO','100K',k,opt_consts,interp_fxn)
 
 
 def main():
