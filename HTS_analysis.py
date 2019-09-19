@@ -5,6 +5,35 @@ import scipy as sp
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
+def create_datasheet(fname,temp,k,opt_consts,interp_fxn_obj,ec_const=False):
+    opt_const_values = []
+
+    for opt in opt_consts:
+        if ec_const:
+            if opt=='e1c':
+                opt_const_values.append(np.full(len(k),5))
+            elif opt=='e2c':
+                opt_const_values.append(np.full(len(k),0.1))
+            else:
+                opt_const_values.append(interp_fxn_obj[temp][opt](k))
+        else:
+            if opt!='e2':
+                opt_const_values.append(interp_fxn_obj[temp][opt](k))
+            else:
+                cleaned_e2 = interp_fxn_obj[temp][opt](k)
+                cleaned_e2[cleaned_e2<0] = 0
+                opt_const_values.append(cleaned_e2)
+
+    with open('./Collated_Data/'+fname, mode='w') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        i=0
+        for i in range(len(k)):
+            row = [k[i]]
+            for opt_values in opt_const_values:
+                row.append(opt_values[i])
+            writer.writerow(row)
+            i+=1
+
 def plot(x,y,log_x=False,log_y=False,axis=None):
     plt.plot(x,y)
     if log_x:
@@ -108,7 +137,7 @@ def calculate_s2_interp(interp_fxn_obj):
         for opt in temp_interp_obj[temp].keys():
             interp_fxn_obj[temp][opt] = temp_interp_obj[temp][opt]
 
-def calculate_eps_interp(interp_fxn_obj):
+def calculate_eps_interp_from_sig(interp_fxn_obj):
     k = np.arange(100,10000,1)
     for temp in interp_fxn_obj.keys():
         s1a = interp_fxn_obj[temp]['s1a'](k)
@@ -128,7 +157,7 @@ def calculate_eps_interp(interp_fxn_obj):
         interp_fxn_obj[temp]['e1b'] = interp1d(k,e1b,kind='cubic')
         interp_fxn_obj[temp]['e2b'] = interp1d(k,e2a,kind='cubic')
 
-def calculate_epsab_interp(interp_fxn_obj):
+def calculate_epsab_interp_from_eps(interp_fxn_obj):
     k = np.arange(100,10000,1)
     for temp in interp_fxn_obj.keys():
         e1a = interp_fxn_obj[temp]['e1a'](k)
@@ -140,29 +169,18 @@ def calculate_epsab_interp(interp_fxn_obj):
         interp_fxn_obj[temp]['e1ab'] = interp1d(k,e1ab,kind='cubic')
         interp_fxn_obj[temp]['e2ab'] = interp1d(k,e2ab,kind='cubic')
 
-def create_datasheet(fname,temp,k,opt_consts,interp_fxn_obj,ec_const=False):
-    opt_const_values = []
+def calculate_eps_interp_from_n_k(ks,total_data_obj,interp_fxn_obj):
+    for temp in interp_fxn_obj.keys():
+        kn = total_data_obj[temp]['k_n']
+        kk = total_data_obj[temp]['k_k']
+        n = np.interp(ks,kn,interp_fxn_obj[temp]['n'](kn))
+        k = np.interp(ks,kk,interp_fxn_obj[temp]['k'](kk))
 
-    for opt in opt_consts:
-        if ec_const:
-            if opt=='e1c':
-                opt_const_values.append(np.full(len(k),5))
-            elif opt=='e2c':
-                opt_const_values.append(np.full(len(k),0.1))
-            else:
-                opt_const_values.append(interp_fxn_obj[temp][opt](k))
-        else:
-            opt_const_values.append(interp_fxn_obj[temp][opt](k))
+        e1 = n**2-k**2
+        e2 = 2*n*k
 
-    with open('./Collated_Data/'+fname, mode='w') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        i=0
-        for i in range(len(k)):
-            row = [k[i]]
-            for opt_values in opt_const_values:
-                row.append(opt_values[i])
-            writer.writerow(row)
-            i+=1
+        interp_fxn_obj[temp]['e1'] = interp1d(ks,e1,kind='cubic')
+        interp_fxn_obj[temp]['e2'] = interp1d(ks,e2,kind='cubic')
 
 def print_interp_fxn(interp_fxn_obj):
     for temp in interp_fxn_obj.keys():
@@ -180,6 +198,14 @@ def interpolate_values(total_data,interp_fxn):
                 x = total_data[temp]['k_'+opt]
                 y = total_data[temp][opt]
                 interp_fxn[temp][opt] = interp1d(x,y,kind='cubic')
+
+def check_sorted(arr):
+    last = arr[0]
+    for i,curr in enumerate(arr):
+        if i!=0:
+            if curr <= last:
+                print(last)
+            last = curr
 
 def YBCO_analysis():
     total_data = {}
@@ -201,8 +227,8 @@ def YBCO_analysis():
                 x = total_data[temp]['k_'+opt]
                 y = total_data[temp][opt]
                 interp_fxn[temp][opt] = interp1d(x,y, kind='cubic')
-    calculate_eps_interp(interp_fxn)
-    calculate_epsab_interp(interp_fxn)
+    calculate_eps_interp_from_sig(interp_fxn)
+    calculate_epsab_interp_from_eps(interp_fxn)
     k = np.arange(101,10000,1)
     opt_consts = ['e1ab','e2ab','e1c','e2c']
     plot_epsab_epsc(k,'YBCO $\epsilon(\omega)$ Values', interp_fxn)
@@ -296,7 +322,6 @@ def LAO_analysis():
     opt_consts = ['e1','e2']
     create_datasheet('LAO_e1_e2_300K.csv','300K',ks,opt_consts,interp_fxn)
 
-
 def STO_analysis():
     hc = 1.24*10**(-4) # value of hc in eV*cm
     total_data = {}
@@ -308,21 +333,26 @@ def STO_analysis():
         total_data['300K']['k_n'] = list(np.array(total_data['300K']['k_n'])/(hc))
         total_data['300K']['k_k'] = list(np.array(total_data['300K']['k_k'])/(hc))
     """
+    CSV_Handler('STO_k_n_20K_45-1000_cm-1.csv', '20K', total_data, opt_consts = ['n'])
+    CSV_Handler('STO_k_k_20K_45-1000_cm-1.csv', '20K', total_data, opt_consts = ['k'])
+    CSV_Handler('STO_k_n_100K_45-1000_cm-1.csv', '100K', total_data, opt_consts = ['n'])
+    CSV_Handler('STO_k_k_100K_45-1000_cm-1.csv', '100K', total_data, opt_consts = ['k'])
+    CSV_Handler('STO_k_n_200K_45-1000_cm-1.csv', '200K', total_data, opt_consts = ['n'])
+    CSV_Handler('STO_k_k_200K_45-1000_cm-1.csv', '200K', total_data, opt_consts = ['k'])
+    CSV_Handler('STO_k_n_300K_45-1000_cm-1.csv', '300K', total_data, opt_consts = ['n'])
+    CSV_Handler('STO_k_k_300K_45-1000_cm-1.csv', '300K', total_data, opt_consts = ['k'])
 
     interpolate_values(total_data,interp_fxn)
 
     ks = np.arange(1,1e4,1)
-    kn = total_data['300K']['k_n']
-    kk = total_data['300K']['k_k']
-    n = np.interp(ks,kn,interp_fxn['300K']['n'](kn))
-    k = np.interp(ks,kk,interp_fxn['300K']['k'](kk))
-    e1 = n**2-k**2
-    e2 = 2*n*k
-    interp_fxn['300K']['e1'] = interp1d(ks,e1,kind='cubic')
-    interp_fxn['300K']['e2'] = interp1d(ks,e2,kind='cubic')
+
+    calculate_eps_interp_from_n_k(ks,total_data,interp_fxn)
 
     opt_consts = ['e1','e2']
-    create_datasheet('STO_e1_e2_300K.csv','300K',ks,opt_consts,interp_fxn)
+    create_datasheet('STO_e1_e2_300K_1-10000_cm-1.csv','300K',ks,opt_consts,interp_fxn)
+    create_datasheet('STO_e1_e2_200K_1-10000_cm-1.csv','200K',ks,opt_consts,interp_fxn)
+    create_datasheet('STO_e1_e2_100K_1-10000_cm-1.csv','100K',ks,opt_consts,interp_fxn)
+    create_datasheet('STO_e1_e2_20K_1-10000_cm-1.csv','20K',ks,opt_consts,interp_fxn)
 
 def main():
     if len(sys.argv)<2:
