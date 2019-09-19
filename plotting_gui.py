@@ -187,11 +187,11 @@ class SelectionArea(GridLayout):
                 self.data[label] = []
             n_label = len(self.data.keys())
             for row in reader:
-                print(len(row), n_label)
                 assert len(row)==n_label,'\n\tCSV Error: Number of data != Number of labels'
                 i=0
                 for label in self.data.keys():
                     if row[i]!='':
+                        print(row[i])
                         self.data[label].append(float(row[i]))
                     else:
                         self.data[label].append(0)
@@ -206,7 +206,8 @@ class SelectionArea(GridLayout):
         y_label = self.y_val_btn.text
         x_data = self.data[x_label]
         y_data = self.data[y_label]
-        plt.scatter(x_data,y_data,s=5,label=y_label)
+        plt.plot(x_data,y_data,label=y_label)
+        #plt.scatter(x_data,y_data,s=5,label=y_label)
         #plt.legend()
         canvas = plt.gcf().canvas
         canvas.draw()

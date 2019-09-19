@@ -1,11 +1,10 @@
 import csv
 
 class CSV_Handler:
-    def __init__(self, fname, data_obj, datadir = './Data/', opt_consts=[]):
+    def __init__(self, fname, temp, data_obj, datadir = './Data/', opt_consts=[]):
         self.DATADIR = datadir
         self.fname = fname
-        identifier = self.fname[:-4]
-        self.temp = identifier.split('_')[-1]
+        self.temp = temp
         if self.temp not in data_obj.keys():
             data_obj[self.temp] = {}
         for opt_const in opt_consts:

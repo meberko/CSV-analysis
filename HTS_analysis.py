@@ -19,28 +19,32 @@ def plot_epsab_epsc(k,suptitle,interp_fxn_obj):
 
     e1ab_10k = interp_fxn_obj['10K']['e1ab'](k)
     e2ab_10k = interp_fxn_obj['10K']['e2ab'](k)
-    e1ab_100k = interp_fxn_obj['100K']['e1ab'](k)
-    e2ab_100k = interp_fxn_obj['100K']['e2ab'](k)
+    e1ab_300k = interp_fxn_obj['300K']['e1ab'](k)
+    e2ab_300k = interp_fxn_obj['300K']['e2ab'](k)
+    #e1ab_100k = interp_fxn_obj['100K']['e1ab'](k)
+    #e2ab_100k = interp_fxn_obj['100K']['e2ab'](k)
 
     e1c_10k = interp_fxn_obj['10K']['e1c'](k)
     e2c_10k = interp_fxn_obj['10K']['e2c'](k)
-    e1c_100k = interp_fxn_obj['100K']['e1c'](k)
-    e2c_100k = interp_fxn_obj['100K']['e2c'](k)
+    e1c_300k = interp_fxn_obj['300K']['e1c'](k)
+    e2c_300k = interp_fxn_obj['300K']['e2c'](k)
+    #e1c_100k = interp_fxn_obj['100K']['e1c'](k)
+    #e2c_100k = interp_fxn_obj['100K']['e2c'](k)
 
     plt.suptitle(suptitle)
 
     ax[0].plot(k,e1ab_10k)
     ax[0].plot(k,e2ab_10k)
-    ax[0].plot(k,e1ab_100k)
-    ax[0].plot(k,e2ab_100k)
-    ax[0].legend(['$\epsilon_{1ab}$ 10K','$\epsilon_{2ab}$ 10K', '$\epsilon_{1ab}$ 100K', '$\epsilon_{2ab}$ 100K'])
+    ax[0].plot(k,e1ab_300k)
+    ax[0].plot(k,e2ab_300k)
+    ax[0].legend(['$\epsilon_{1ab}$ 10K','$\epsilon_{2ab}$ 10K', '$\epsilon_{1ab}$ 300K', '$\epsilon_{2ab}$ 300K'])
     ax[0].set_xscale('log')
 
     ax[1].plot(k,e1c_10k)
     ax[1].plot(k,e2c_10k)
-    ax[1].plot(k,e1c_100k)
-    ax[1].plot(k,e2c_100k)
-    ax[1].legend(['$\epsilon_{1c}$ 10K','$\epsilon_{2c}$ 10K', '$\epsilon_{1c}$ 100K', '$\epsilon_{2c}$ 100K'])
+    ax[1].plot(k,e1c_300k)
+    ax[1].plot(k,e2c_300k)
+    ax[1].legend(['$\epsilon_{1c}$ 10K','$\epsilon_{2c}$ 10K', '$\epsilon_{1c}$ 300K', '$\epsilon_{2c}$ 300K'])
     plt.xlabel('k (cm$^{-1}$)')
 
     plt.show()
@@ -127,20 +131,28 @@ def calculate_eps_interp(interp_fxn_obj):
 def calculate_epsab_interp(interp_fxn_obj):
     k = np.arange(100,10000,1)
     for temp in interp_fxn_obj.keys():
-        e1a = interp_fxn_obj[temp]['e1a']
-        e2a = interp_fxn_obj[temp]['e2a']
-        e1b = interp_fxn_obj[temp]['e1b']
-        e2b = interp_fxn_obj[temp]['e2b']
+        e1a = interp_fxn_obj[temp]['e1a'](k)
+        e2a = interp_fxn_obj[temp]['e2a'](k)
+        e1b = interp_fxn_obj[temp]['e1b'](k)
+        e2b = interp_fxn_obj[temp]['e2b'](k)
         e1ab = (e1a+e1b)/2
         e2ab = (e2a+e2b)/2
         interp_fxn_obj[temp]['e1ab'] = interp1d(k,e1ab,kind='cubic')
         interp_fxn_obj[temp]['e2ab'] = interp1d(k,e2ab,kind='cubic')
 
-def create_datasheet(fname,material,temp,k,opt_consts,interp_fxn_obj):
+def create_datasheet(fname,temp,k,opt_consts,interp_fxn_obj,ec_const=False):
     opt_const_values = []
 
     for opt in opt_consts:
-        opt_const_values.append(interp_fxn_obj[temp][opt](k))
+        if ec_const:
+            if opt=='e1c':
+                opt_const_values.append(np.full(len(k),5))
+            elif opt=='e2c':
+                opt_const_values.append(np.full(len(k),0.1))
+            else:
+                opt_const_values.append(interp_fxn_obj[temp][opt](k))
+        else:
+            opt_const_values.append(interp_fxn_obj[temp][opt](k))
 
     with open('./Collated_Data/'+fname, mode='w') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
@@ -158,16 +170,27 @@ def print_interp_fxn(interp_fxn_obj):
         for opt in interp_fxn_obj[temp].keys():
             print('\t'+opt)
 
+def interpolate_values(total_data,interp_fxn):
+    for temp in total_data.keys():
+        print(temp)
+        interp_fxn[temp] = {}
+        for opt in total_data[temp].keys():
+            if 'k_' not in opt:
+                print('\tInterpolating '+opt)
+                x = total_data[temp]['k_'+opt]
+                y = total_data[temp][opt]
+                interp_fxn[temp][opt] = interp1d(x,y,kind='cubic')
+
 def YBCO_analysis():
     total_data = {}
     interp_fxn = {}
 
-    csvh = CSV_Handler('YBCO_s1a_s2a_y6.95_10K.csv', total_data, opt_consts = ['s1a','s2a'])
-    csvh = CSV_Handler('YBCO_s1a_s2a_y6.95_100K.csv', total_data, opt_consts = ['s1a','s2a'])
-    csvh = CSV_Handler('YBCO_s1b_s2b_y6.95_10K.csv', total_data, opt_consts = ['s1b','s2b'])
-    csvh = CSV_Handler('YBCO_s1b_s2b_y6.95_100K.csv', total_data, opt_consts = ['s1b','s2b'])
-    csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
-    csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
+    csvh = CSV_Handler('YBCO_s1a_s2a_y6.95_10K.csv','10K', total_data, opt_consts = ['s1a','s2a'])
+    csvh = CSV_Handler('YBCO_s1a_s2a_y6.95_100K.csv','100K', total_data, opt_consts = ['s1a','s2a'])
+    csvh = CSV_Handler('YBCO_s1b_s2b_y6.95_10K.csv','10K', total_data, opt_consts = ['s1b','s2b'])
+    csvh = CSV_Handler('YBCO_s1b_s2b_y6.95_100K.csv','100K', total_data, opt_consts = ['s1b','s2b'])
+    csvh = CSV_Handler('YBCO_all_y6.95_10K.csv','10K', total_data, opt_consts = ['e1c','e2c'])
+    csvh = CSV_Handler('YBCO_all_y6.95_100K.csv','100K', total_data, opt_consts = ['e1c','e2c'])
 
     for temp in total_data.keys():
         print(temp)
@@ -181,48 +204,53 @@ def YBCO_analysis():
     calculate_eps_interp(interp_fxn)
     calculate_epsab_interp(interp_fxn)
     k = np.arange(101,10000,1)
-    plot_eps(k, interp_fxn)
-    #create_datasheet(interp_fxn, '10K', 'YBCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const.csv','YBCO')
-    #create_datasheet(interp_fxn, '100K', 'YBCO_e1ab_e2ab_e1c_e2c_100K_interp_ec_const.csv','YBCO')
+    opt_consts = ['e1ab','e2ab','e1c','e2c']
+    plot_epsab_epsc(k,'YBCO $\epsilon(\omega)$ Values', interp_fxn)
+    create_datasheet('YBCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
+    create_datasheet('YBCO_e1ab_e2ab_e1c_e2c_100K_interp_ec_const.csv','100K',k,opt_consts,interp_fxn, ec_const=True)
+    create_datasheet('YBCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','10K',k,opt_consts,interp_fxn, ec_const=False)
+    create_datasheet('YBCO_e1ab_e2ab_e1c_e2c_100K_interp.csv','100K',k,opt_consts,interp_fxn, ec_const=False)
 
 def BSCCO_analysis():
     total_data_BSCCO = {}
-    interp_fxn_BSCCO = {}
+    interp_fxn = {}
 
-    csvh = CSV_Handler('Basov_BSCCO2212_10K.csv', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Basov_BSCCO2212_100K.csv', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Bi2212_fit_e1_10K.csv', total_data_BSCCO, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_10K.csv', total_data_BSCCO, opt_consts = ['e2c'])
-    csvh = CSV_Handler('Bi2212_fit_e1_100K.csv', total_data_BSCCO, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_100K.csv', total_data_BSCCO, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Basov_BSCCO2212_10K.csv', '10K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('Basov_BSCCO2212_295K.csv', '300K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data_BSCCO, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_6K.csv', '10K', total_data_BSCCO, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e2c'])
 
     for temp in total_data_BSCCO.keys():
         print(temp)
-        interp_fxn_BSCCO[temp] = {}
+        interp_fxn[temp] = {}
         for opt in total_data_BSCCO[temp].keys():
             if 'k_' not in opt:
                 print('\tInterpolating '+opt)
                 x = total_data_BSCCO[temp]['k_'+opt]
                 y = total_data_BSCCO[temp][opt]
-                interp_fxn_BSCCO[temp][opt] = interp1d(x,y, kind='cubic')
+                interp_fxn[temp][opt] = interp1d(x,y, kind='cubic')
 
 
-    k = np.arange(101,1000,1)
+    k = np.arange(101,10000,1)
     opt_consts = ['e1ab','e2ab','e1c','e2c']
-    plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn_BSCCO)
-    #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','BSCCO','10K',k,opt_consts,interp_fxn_BSCCO)
-    #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_100K_interp.csv','BSCCO','100K',k,opt_consts,interp_fxn_BSCCO)
+    plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
+    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
+    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
+    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','10K',k,opt_consts,interp_fxn, ec_const=False)
+    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp.csv','300K',k,opt_consts,interp_fxn, ec_const=False)
 
 def DyBCO_analysis():
     total_data = {}
     interp_fxn = {}
 
-    csvh = CSV_Handler('DyBCO_e1_e2_model_10K.csv', total_data, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('DyBCO_e1_e2_model_100K.csv', total_data, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Bi2212_fit_e1_10K.csv', total_data, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_10K.csv', total_data, opt_consts = ['e2c'])
-    csvh = CSV_Handler('Bi2212_fit_e1_100K.csv', total_data, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_100K.csv', total_data, opt_consts = ['e2c'])
+    csvh = CSV_Handler('DyBCO_e1_e2_model_10K.csv', '10K', total_data, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('DyBCO_e1_e2_model_100K.csv', '100K', total_data, opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_6K.csv', '10K', total_data, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '100K', total_data, opt_consts = ['e1c'])
+    csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '100K', total_data, opt_consts = ['e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
 
@@ -240,18 +268,74 @@ def DyBCO_analysis():
     opt_consts = ['e1ab','e2ab','e1c','e2c']
     plot_epsab_epsc(k,'DyBCO $\epsilon(\omega)$ Values', interp_fxn)
 
-    create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_10K_interp.csv','DyBCO','10K',k,opt_consts,interp_fxn)
-    create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_100K_interp.csv','DyBCO','100K',k,opt_consts,interp_fxn)
+    #create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_10K_interp.csv','10K',k,opt_consts,interp_fxn)
+    #create_datasheet('DyBCO_e1ab_e2ab_BSCCO_e1c_BSCCO_e2c_100K_interp.csv','100K',k,opt_consts,interp_fxn)
 
+def LAO_analysis():
+    hc = 1.24*10**(-4) # value of hc in eV*cm
+    total_data = {}
+    interp_fxn = {}
+
+    csvh = CSV_Handler('LAO-n-300K.csv', '300K', total_data, opt_consts = ['n'])
+    csvh = CSV_Handler('LAO-k-300K.csv', '300K', total_data, opt_consts = ['k'])
+    total_data['300K']['k_n'] = list(np.array(total_data['300K']['k_n'])/(hc))
+    total_data['300K']['k_k'] = list(np.array(total_data['300K']['k_k'])/(hc))
+
+    interpolate_values(total_data,interp_fxn)
+
+    ks = np.arange(1,1e4,1)
+    kn = total_data['300K']['k_n']
+    kk = total_data['300K']['k_k']
+    n = np.interp(ks,kn,interp_fxn['300K']['n'](kn))
+    k = np.interp(ks,kk,interp_fxn['300K']['k'](kk))
+    e1 = n**2-k**2
+    e2 = 2*n*k
+    interp_fxn['300K']['e1'] = interp1d(ks,e1,kind='cubic')
+    interp_fxn['300K']['e2'] = interp1d(ks,e2,kind='cubic')
+
+    opt_consts = ['e1','e2']
+    create_datasheet('LAO_e1_e2_300K.csv','300K',ks,opt_consts,interp_fxn)
+
+
+def STO_analysis():
+    hc = 1.24*10**(-4) # value of hc in eV*cm
+    total_data = {}
+    interp_fxn = {}
+
+    """
+        csvh = CSV_Handler('STO-n-300K.csv', '300K', total_data, opt_consts = ['n'])
+        csvh = CSV_Handler('STO-k-300K.csv', '300K', total_data, opt_consts = ['k'])
+        total_data['300K']['k_n'] = list(np.array(total_data['300K']['k_n'])/(hc))
+        total_data['300K']['k_k'] = list(np.array(total_data['300K']['k_k'])/(hc))
+    """
+
+    interpolate_values(total_data,interp_fxn)
+
+    ks = np.arange(1,1e4,1)
+    kn = total_data['300K']['k_n']
+    kk = total_data['300K']['k_k']
+    n = np.interp(ks,kn,interp_fxn['300K']['n'](kn))
+    k = np.interp(ks,kk,interp_fxn['300K']['k'](kk))
+    e1 = n**2-k**2
+    e2 = 2*n*k
+    interp_fxn['300K']['e1'] = interp1d(ks,e1,kind='cubic')
+    interp_fxn['300K']['e2'] = interp1d(ks,e2,kind='cubic')
+
+    opt_consts = ['e1','e2']
+    create_datasheet('STO_e1_e2_300K.csv','300K',ks,opt_consts,interp_fxn)
 
 def main():
-    material = 'DyBCO'
-    if material=='DyBCO':
-        DyBCO_analysis()
-    if material=='YBCO':
-        YBCO_analysis()
-    if material=='BSCCO':
-        BSCCO_analysis()
-
+    if len(sys.argv)<2:
+        material = 'DyBCO'
+    else:
+        material = sys.argv[1]
+    func_dict = {
+        'BSCCO': BSCCO_analysis,
+        'DyBCO': DyBCO_analysis,
+        'YBCO': YBCO_analysis,
+        'LAO': LAO_analysis,
+        'STO': STO_analysis
+    }
+    func_dict[material]()
 
 if __name__=='__main__': main()
