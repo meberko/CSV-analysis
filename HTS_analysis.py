@@ -207,6 +207,11 @@ def check_sorted(arr):
                 print(last)
             last = curr
 
+def clean_negatives(total_data_obj,temp,opt):
+    cleaned = np.array(total_data_obj[temp][opt])
+    cleaned[cleaned<0] = 0
+    total_data_obj[temp][opt] = list(cleaned)
+
 def YBCO_analysis():
     total_data = {}
     interp_fxn = {}
@@ -341,6 +346,16 @@ def STO_analysis():
     CSV_Handler('STO_k_k_200K_45-1000_cm-1.csv', '200K', total_data, opt_consts = ['k'])
     CSV_Handler('STO_k_n_300K_45-1000_cm-1.csv', '300K', total_data, opt_consts = ['n'])
     CSV_Handler('STO_k_k_300K_45-1000_cm-1.csv', '300K', total_data, opt_consts = ['k'])
+
+    x = total_data['20K']['k_k']
+    y = total_data['20K']['k']
+    plt.figure()
+    plt.plot(x,y)
+    plt.show()
+    clean_negatives(total_data,'20K','k')
+    clean_negatives(total_data,'100K','k')
+    clean_negatives(total_data,'200K','k')
+    clean_negatives(total_data,'300K','k')
 
     interpolate_values(total_data,interp_fxn)
 
