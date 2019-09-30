@@ -3,7 +3,11 @@ from CSV_Handler import CSV_Handler
 import numpy as np
 import scipy as sp
 from scipy.interpolate import interp1d
+from scipy import optimize
 import matplotlib.pyplot as plt
+
+def test_e1(k,a):
+    return a/k**2
 
 def create_datasheet(fname,temp,k,opt_consts,interp_fxn_obj,ec_const=False):
     opt_const_values = []
@@ -43,7 +47,7 @@ def plot(x,y,log_x=False,log_y=False,axis=None):
     if axis != None:
         plt.axis(axis)
 
-def plot_epsab_epsc(k,suptitle,interp_fxn_obj):
+def plot_epsab_epsc(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
     fig,ax = plt.subplots(2,1,sharex=True)
 
     e1ab_10k = interp_fxn_obj['10K']['e1ab'](k)
@@ -68,6 +72,10 @@ def plot_epsab_epsc(k,suptitle,interp_fxn_obj):
     ax[0].plot(k,e2ab_300k)
     ax[0].legend(['$\epsilon_{1ab}$ 10K','$\epsilon_{2ab}$ 10K', '$\epsilon_{1ab}$ 300K', '$\epsilon_{2ab}$ 300K'])
     ax[0].set_xscale('log')
+    if params_LT is not None:
+        ax[0].plot(k,test_e1(k,params_LT[0]))
+    if params_HT is not None:
+        ax[0].plot(k,test_e1(k,params_HT[0]))
 
     ax[1].plot(k,e1c_10k)
     ax[1].plot(k,e2c_10k)
@@ -249,9 +257,27 @@ def BSCCO_analysis():
     csvh = CSV_Handler('Basov_BSCCO2212_10K.csv', '10K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
     csvh = CSV_Handler('Basov_BSCCO2212_295K.csv', '300K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
     csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data_BSCCO, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_6K.csv', '10K', total_data_BSCCO, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data_BSCCO, opt_consts = ['e2c'])
     csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e1c'])
     csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e2c'])
+
+    params = {}
+    for temp in total_data_BSCCO.keys():
+        params[temp] = {}
+        for opt in total_data_BSCCO[temp].keys():
+            if 'k_' not in opt and opt[-1]!='c':
+                x_data = []
+                y_data = []
+                for i,k in enumerate(total_data_BSCCO[temp]['k_'+opt]):
+                    if k>100 and k<300:
+                        x_data.append(k)
+                        y_data.append(total_data_BSCCO[temp][opt][i])
+                params[temp][opt] = optimize.curve_fit(test_e1,x_data,y_data,p0=[-1])
+                p = optimize.curve_fit(test_e1,x_data,y_data,p0=[-1])
+                k = np.arange(1,99,1)
+                y = test_e1(k,p[0])
+                total_data_BSCCO[temp]['k_'+opt] = np.concatenate((k,total_data_BSCCO[temp]['k_'+opt]))
+                total_data_BSCCO[temp][opt] = np.concatenate((y,total_data_BSCCO[temp][opt]))
 
     for temp in total_data_BSCCO.keys():
         print(temp)
@@ -259,18 +285,21 @@ def BSCCO_analysis():
         for opt in total_data_BSCCO[temp].keys():
             if 'k_' not in opt:
                 print('\tInterpolating '+opt)
+                print('\tMinimum k: {}'.format(total_data_BSCCO[temp]['k_'+opt][0]))
                 x = total_data_BSCCO[temp]['k_'+opt]
                 y = total_data_BSCCO[temp][opt]
-                interp_fxn[temp][opt] = interp1d(x,y, kind='cubic')
+                interp_fxn[temp][opt] = interp1d(x,y, kind='cubic', fill_value=(y[0],y[-1]), bounds_error=False)
 
 
-    k = np.arange(101,10000,1)
     opt_consts = ['e1ab','e2ab','e1c','e2c']
+    k = np.arange(1,10000,1)
     plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
-    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
-    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
-    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp.csv','10K',k,opt_consts,interp_fxn, ec_const=False)
-    create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp.csv','300K',k,opt_consts,interp_fxn, ec_const=False)
+    create = False
+    if create:
+        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
+        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
+        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=False)
+        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=False)
 
 def DyBCO_analysis():
     total_data = {}
