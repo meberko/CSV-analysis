@@ -1,4 +1,4 @@
-import csv
+import csv,os
 
 class CSV_Handler:
     def __init__(self, fname, temp, data_obj, datadir = './Data/', opt_consts=[]):
@@ -16,7 +16,7 @@ class CSV_Handler:
 
 
     def process_file(self,data,opt_consts=[]):
-        with open(self.DATADIR+self.fname, mode='r', encoding='utf-8-sig') as csvfile:
+        with open(os.path.join(self.DATADIR,self.fname), mode='r', encoding='utf-8-sig') as csvfile:
             csvreader = csv.reader(csvfile, delimiter=',')
             for row in csvreader:
                 k = float(row[0])

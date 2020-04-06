@@ -1,4 +1,5 @@
 import csv,sys,os
+import argparse
 import numpy as np
 import scipy as sp
 from scipy.optimize import curve_fit
@@ -66,6 +67,9 @@ class CSV_Data:
 
     def PlotShow(self):
         plt.show()
+
+def CreateParser():
+    parser = argparse.ArgumentParser()
 
 def main():
     argc = len(sys.argv)

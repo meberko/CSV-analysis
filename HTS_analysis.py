@@ -175,6 +175,53 @@ def plot_epsab_epsc(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
 
     plt.show()
 
+def plot_eps1ab_eps1c(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
+    fig,ax = plt.subplots(1,1)
+
+    plt.suptitle(suptitle)
+    eps1ab_RT = interp_fxn_obj["300K"]['e1ab'](k)
+    eps1c_RT = interp_fxn_obj["300K"]['e1c'](k)
+    eps1ab_LT = interp_fxn_obj["10K"]['e1ab'](k)
+    eps1c_LT = interp_fxn_obj["10K"]['e1c'](k)
+    leg = []
+    ax.plot(k,eps1ab_RT)
+    leg.append('$\epsilon_{1ab}$ '+"300K")
+    ax.plot(k,eps1c_RT)
+    leg.append('$\epsilon_{1c}$ '+"300K")
+    ax.plot(k,eps1ab_LT)
+    leg.append('$\epsilon_{1ab}$ '+"10K")
+    ax.plot(k,eps1c_LT)
+    leg.append('$\epsilon_{1c}$ '+"10K")
+    ax.legend(leg)
+    ax.fill_between(k,-1000,100, where=(eps1ab_RT*eps1c_RT<0), facecolor = "#f9b2ae")
+    #ax.set_xscale('log')
+    ax.set_yscale('symlog',linthreshy=10)
+    plt.xlabel('k (cm$^{-1}$)')
+    plt.show()
+
+def plot_eps2ab_eps2c(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
+    fig,ax = plt.subplots(1,1)
+
+    plt.suptitle(suptitle)
+    eps1ab = interp_fxn_obj["300K"]['e1ab'](k)
+    eps2ab = interp_fxn_obj["300K"]['e2ab'](k)
+    eps1c = interp_fxn_obj["300K"]['e1c'](k)
+    eps2c = interp_fxn_obj["300K"]['e2c'](k)
+    loss_ab = eps2ab/(eps1ab**2+eps2ab**2)
+    loss_c = eps2c/(eps1c**2+eps2c**2)
+
+    leg = []
+    ax.plot(k, loss_ab)
+    leg.append('$-Im[1/\epsilon_{1ab}]$ '+"300K")
+    ax.plot(k,loss_c, color='g')
+    leg.append('$-Im[1/\epsilon_{1c}]$ '+"300K")
+    ax.legend(leg)
+    #ax.fill_between(k,-1000,100, where=(eps1ab*eps1c<0), facecolor = "#f9b2ae")
+    #ax.set_xscale('log')
+    #ax.set_yscale('symlog',linthreshy=10)
+    plt.xlabel('k (cm$^{-1}$)')
+    plt.show()
+
 """
     Analysis for specific HTS and substrates
 """
@@ -222,8 +269,10 @@ def BSCCO_analysis():
     interpolate(total_data_BSCCO, interp_fxn)
 
     opt_consts = ['e1ab','e2ab','e1c','e2c']
-    k = np.arange(1,300,1)
+    k = np.arange(100,1000,1)
     plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
+    #plot_eps1ab_eps1c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
+    #plot_eps2ab_eps2c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     create = False
     if create:
         create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
