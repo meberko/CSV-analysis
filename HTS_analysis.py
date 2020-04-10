@@ -130,7 +130,7 @@ def extrapolate(ext_range, ext_k, ext_fxn, temps, opts, total_data_obj,p0=None):
                     x_data.append(k)
                     y_data.append(total_data_obj[temp][opt][i])
             p,p_cov = optimize.curve_fit(ext_fxn,x_data,y_data,p0=p0)
-            print(p)
+            #print(p)
             y = ext_fxn(ext_k,*p)
             total_data_obj[temp]['k_'+opt] = np.concatenate((ext_k,total_data_obj[temp]['k_'+opt]))
             total_data_obj[temp][opt] = np.concatenate((y,total_data_obj[temp][opt]))
@@ -158,7 +158,8 @@ def plot_epsab_epsc(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
         ax[0].plot(k,interp_fxn_obj[temp]['e2ab'](k))
         leg.append('$\epsilon_{2ab}$ '+temp)
     ax[0].legend(leg)
-    ax[0].set_xscale('log')
+    #ax[0].set_xscale('log')
+    ax[0].set_yscale('symlog')
     if params_LT is not None:
         ax[0].plot(k,test_e1(k,params_LT[0]))
     if params_HT is not None:
@@ -253,12 +254,18 @@ def YBCO_analysis():
 def BSCCO_analysis():
     total_data_BSCCO, interp_fxn = {},{}
 
-    csvh = CSV_Handler('Basov_BSCCO2212_10K.csv', '10K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Basov_BSCCO2212_295K.csv', '300K', total_data_BSCCO, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data_BSCCO, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data_BSCCO, opt_consts = ['e2c'])
-    csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '300K', total_data_BSCCO, opt_consts = ['e2c'])
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_10K.csv', '10K', total_data_BSCCO,
+        datadir="./Data/BSCCO", opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_295K.csv', '300K', total_data_BSCCO,
+        datadir="./Data/BSCCO", opt_consts = ['e1ab','e2ab'])
+    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_6K+JPR_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_6K+JPR_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_300K_fitted.dat', '300K', total_data_BSCCO,
+        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_300K_fitted.dat', '300K', total_data_BSCCO,
+        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
 
     ext_range = [100,300]
     ext_k = np.arange(1,99,0.1)
@@ -269,16 +276,16 @@ def BSCCO_analysis():
     interpolate(total_data_BSCCO, interp_fxn)
 
     opt_consts = ['e1ab','e2ab','e1c','e2c']
-    k = np.arange(100,1000,1)
+    k = np.arange(1,2000,1)
     plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     #plot_eps1ab_eps1c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     #plot_eps2ab_eps2c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
-    create = False
+    create = True
     if create:
-        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
-        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
-        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=False)
-        create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=False)
+        #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
+        #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
+        create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Tajima_e1c_e2c_10K.csv','10K',k,opt_consts,interp_fxn)
+        create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Tajima_e1c_e2c_300K.csv','300K',k,opt_consts,interp_fxn)
 
 def DyBCO_analysis():
     total_data,interp_fxn = {},{}
