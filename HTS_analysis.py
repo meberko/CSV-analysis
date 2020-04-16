@@ -280,7 +280,7 @@ def BSCCO_analysis():
     plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     #plot_eps1ab_eps1c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     #plot_eps2ab_eps2c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
-    create = True
+    create = False
     if create:
         #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
         #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
@@ -290,19 +290,17 @@ def BSCCO_analysis():
 def DyBCO_analysis():
     total_data,interp_fxn = {},{}
 
-    csvh = CSV_Handler('DyBCO_e1_e2_model_10K.csv', '10K', total_data, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('DyBCO_e1_e2_model_100K.csv', '100K', total_data, opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data, opt_consts = ['e2c'])
-    csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '100K', total_data, opt_consts = ['e1c'])
-    csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '100K', total_data, opt_consts = ['e2c'])
+        #csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data, datadir="./Data/DyBCO", opt_consts = ['e1c'])
+    #csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data, datadir="./Data/DyBCO", opt_consts = ['e2c'])
+    #csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '100K', total_data, datadir="./Data/DyBCO", opt_consts = ['e1c'])
+    #csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '100K', total_data, datadir="./Data/DyBCO", opt_consts = ['e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
 
     interpolate(total_data,interp_fxn)
 
     k = np.arange(101,10000,1)
-    opt_consts = ['e1ab','e2ab','e1c','e2c']
+    opt_consts = ['e1ab','e2ab']
     plot_epsab_epsc(k,'DyBCO $\epsilon(\omega)$ Values', interp_fxn)
     create = False
     if create:
