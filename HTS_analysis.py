@@ -1,5 +1,5 @@
 import csv,os,sys
-from CSV_Handler import CSV_Handler
+from utils import CSV_Handler,interpolate,create_datasheet
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy import optimize
@@ -77,50 +77,6 @@ def calculate_eps_interp_from_n_k(ks,total_data_obj,interp_fxn_obj):
     Function for creating a datasheet for input temperatures & optical constants
 """
 
-def create_datasheet(fname,temp,k,opt_consts,interp_fxn_obj,ec_const=False):
-    opt_const_values = []
-
-    for opt in opt_consts:
-        if ec_const:
-            if opt=='e1c':
-                opt_const_values.append(np.full(len(k),5))
-            elif opt=='e2c':
-                opt_const_values.append(np.full(len(k),0.1))
-            else:
-                opt_const_values.append(interp_fxn_obj[temp][opt](k))
-        else:
-            if opt!='e2':
-                opt_const_values.append(interp_fxn_obj[temp][opt](k))
-            else:
-                cleaned_e2 = interp_fxn_obj[temp][opt](k)
-                cleaned_e2[cleaned_e2<0] = 0
-                opt_const_values.append(cleaned_e2)
-
-    with open('./Collated_Data/'+fname, mode='w') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        i=0
-        for i in range(len(k)):
-            row = [k[i]]
-            for opt_values in opt_const_values:
-                row.append(opt_values[i])
-            writer.writerow(row)
-            i+=1
-
-"""
-    Functions for interpolating and extrapolating optical constants
-"""
-
-def interpolate(total_data,interp_fxn):
-    for temp in total_data.keys():
-        print(temp)
-        interp_fxn[temp] = {}
-        for opt in total_data[temp].keys():
-            if 'k_' not in opt:
-                print('\tInterpolating '+opt)
-                x = total_data[temp]['k_'+opt]
-                y = total_data[temp][opt]
-                interp_fxn[temp][opt] = interp1d(x,y, kind='cubic', fill_value=(y[0],y[-1]), bounds_error=False)
-
 def extrapolate(ext_range, ext_k, ext_fxn, temps, opts, total_data_obj,p0=None):
     for temp in temps:
         for opt in opts:
@@ -158,7 +114,7 @@ def plot_epsab_epsc(k,suptitle,interp_fxn_obj,params_LT=None, params_HT=None):
         ax[0].plot(k,interp_fxn_obj[temp]['e2ab'](k))
         leg.append('$\epsilon_{2ab}$ '+temp)
     ax[0].legend(leg)
-    #ax[0].set_xscale('log')
+    ax[0].set_xscale('log')
     ax[0].set_yscale('symlog')
     if params_LT is not None:
         ax[0].plot(k,test_e1(k,params_LT[0]))
@@ -255,46 +211,98 @@ def YBCO_analysis():
 def BSCCO_analysis():
     total_data_BSCCO, interp_fxn = {},{}
 
-    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_10K.csv', '10K', total_data_BSCCO,
-        datadir="./Data/BSCCO", opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_295K.csv', '300K', total_data_BSCCO,
-        datadir="./Data/BSCCO", opt_consts = ['e1ab','e2ab'])
-    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_6K+JPR_fitted_fixed.dat', '10K', total_data_BSCCO,
-        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
-    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_6K+JPR_fitted_fixed.dat', '10K', total_data_BSCCO,
-        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
-    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_300K_fitted.dat', '300K', total_data_BSCCO,
-        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
-    csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_300K_fitted.dat', '300K', total_data_BSCCO,
-        datadir="./Data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+    # Import ab-plane optical constants
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_6K_Drude_gap_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e1ab'], delimiter=' ')
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e2ab_6K_Drude_gap_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e2ab'], delimiter=' ')
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_100K_Drude_fitted.dat', '100K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e1ab'], delimiter=' ')
+    csvh = CSV_Handler('Tu_2002_Bi2212_k_e2ab_100K_Drude_fitted.dat', '100K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e2ab'], delimiter=' ')
+    """
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_10K.csv', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e1ab','e2ab'])
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_100K.csv', '150K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e1ab','e2ab'])
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_e2ab_295K.csv', '300K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e1ab','e2ab'])
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_10K_fitted.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e1ab'],delimiter=' ')
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e2ab_10K_fitted.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e2ab'],delimiter=' ')
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e1ab_100K_fitted.dat', '150K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e1ab'],delimiter=' ')
+        csvh = CSV_Handler('Tu_2002_Bi2212_k_e2ab_100K_fitted.dat', '150K', total_data_BSCCO,
+            datadir="./data/BSCCO", opt_consts = ['e2ab'],delimiter=' ')
+    """
 
-    ext_range = [100,300]
-    ext_k = np.arange(1,99,0.1)
-    temps = ['10K','300K']
-    opts = ['e1ab','e2ab']
+    # Import c-axis optical constants
+    csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e1c_10K_Drude_gap_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e1c'], delimiter=' ')
+    csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e2c_10K_Drude_gap_fitted.dat', '10K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e2c'], delimiter=' ')
+    csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e1c_100K_dielectric_fitted.dat', '100K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e1c'], delimiter=' ')
+    csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e2c_100K_dielectric_fitted.dat', '100K', total_data_BSCCO,
+        datadir="./data/BSCCO", opt_consts = ['e2c'], delimiter=' ')
+    """
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_6K+JPR_fitted_fixed.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_6K+JPR_fitted_fixed.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+        csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e1c_150K_fitted.dat', '150K', total_data_BSCCO,\
+            datadir="./data/BSCCO", opt_consts = ['e1c'], delimiter=' ')
+        csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e2c_150K_fitted.dat', '150K', total_data_BSCCO,\
+            datadir="./data/BSCCO", opt_consts = ['e2c'], delimiter=' ')
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_300K_fitted.dat', '300K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_300K_fitted.dat', '300K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e1c_6K_JPR_delta.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+        csvh = CSV_Handler('Tajima_1993_Bi2212_k_e2c_6K_JPR_delta.dat', '10K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+        csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e1c_150K_fitted.dat', '150K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e1c'])
+        csvh = CSV_Handler('Kovaleva_2004_Bi2212_k_e2c_150K_fitted.dat', '150K', total_data_BSCCO,
+            datadir="./data/BSCCO", delimiter=' ', opt_consts = ['e2c'])
+    """
 
-    extrapolate(ext_range,ext_k,test_e1,temps,opts,total_data_BSCCO,p0=[10000])
-    interpolate(total_data_BSCCO, interp_fxn)
+    #ext_range = [100,300]
+    #ext_k = np.arange(1,99,0.1)
+    #opts = ['e1ab','e2ab']
+    temps = ['10K','10K']
+
+    #extrapolate(ext_range,ext_k,test_e1,temps,opts,total_data_BSCCO,p0=[10000])
+    interp_fxn = interpolate(total_data_BSCCO)
 
     opt_consts = ['e1ab','e2ab','e1c','e2c']
-    k = np.arange(1,2000,1)
+    k = np.arange(0.1,10000,0.1)
     plot_epsab_epsc(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
-    #plot_eps1ab_eps1c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
-    #plot_eps2ab_eps2c(k,'BSCCO $\epsilon(\omega)$ Values',interp_fxn)
     create = True
     if create:
+        create_datasheet(source="Bi2212_Tu_Drude_gap_fitted_Kovaleva_Drude_gap_fitted",\
+                                data_dir="./collated_data/",\
+                                temp="10K",material="Bi2212",ks=k,\
+                                opts=opt_consts,interp_fxn_obj=interp_fxn,delimiter=",")
+        create_datasheet(source="Bi2212_Tu_Drude_fitted_Kovaleva_dielectric_fitted",\
+                                data_dir="./collated_data/",\
+                                temp="100K",material="Bi2212",ks=k,\
+                                opts=opt_consts,interp_fxn_obj=interp_fxn,delimiter=",")
+        #create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Drude_gap_fitted_Kovaleva_e1c_e2c_Drude_gap_fitted_10K.csv','10K',k,opt_consts,interp_fxn)
+        #create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Drude_fitted_Kovaleva_e1c_e2c_dielectric_fitted_100K.csv','100K',k,opt_consts,interp_fxn)
         #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_10K_interp_ec_const_extrapolated_THz.csv','10K',k,opt_consts,interp_fxn, ec_const=True)
         #create_datasheet('BSCCO_e1ab_e2ab_e1c_e2c_300K_interp_ec_const_extrapolated_THz.csv','300K',k,opt_consts,interp_fxn, ec_const=True)
-        create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Tajima_e1c_e2c_10K_JPR_fixed.csv','10K',k,opt_consts,interp_fxn)
-        create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Tajima_e1c_e2c_300K.csv','300K',k,opt_consts,interp_fxn)
+        #create_datasheet('Bi2212_k_Tu_e1ab_e2ab_Tajima_e1c_e2c_300K.csv','300K',k,opt_consts,interp_fxn)
 
 def DyBCO_analysis():
     total_data,interp_fxn = {},{}
 
-        #csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data, datadir="./Data/DyBCO", opt_consts = ['e1c'])
-    #csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data, datadir="./Data/DyBCO", opt_consts = ['e2c'])
-    #csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '100K', total_data, datadir="./Data/DyBCO", opt_consts = ['e1c'])
-    #csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '100K', total_data, datadir="./Data/DyBCO", opt_consts = ['e2c'])
+        #csvh = CSV_Handler('Bi2212_fit_e1_6K.csv', '10K', total_data, datadir="./data/DyBCO", opt_consts = ['e1c'])
+    #csvh = CSV_Handler('Bi2212_fit_e2c_6K_Tajima.csv', '10K', total_data, datadir="./data/DyBCO", opt_consts = ['e2c'])
+    #csvh = CSV_Handler('Bi2212_fit_e1_300K.csv', '100K', total_data, datadir="./data/DyBCO", opt_consts = ['e1c'])
+    #csvh = CSV_Handler('Bi2212_fit_e2_300K.csv', '100K', total_data, datadir="./data/DyBCO", opt_consts = ['e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_10K.csv', total_data, opt_consts = ['e1c','e2c'])
     #csvh = CSV_Handler('YBCO_all_y6.95_100K.csv', total_data, opt_consts = ['e1c','e2c'])
 
@@ -377,7 +385,7 @@ def STO_analysis():
 
 def main():
     if len(sys.argv)<2:
-        material = 'DyBCO'
+        material = 'BSCCO'
     else:
         material = sys.argv[1]
     func_dict = {
